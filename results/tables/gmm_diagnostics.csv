@@ -1,0 +1,18 @@
+model,test,statistic,df,p_value,notes
+Difference GMM (predetermined),Hansen J overidentification test,7.07827871724764,8,0.52821105340641,Two-step cluster-robust moment covariance; interpret with instrument count.
+Difference GMM (predetermined),AR(1) residual-correlation screen,-0.478968987151461,6660,0.0,Normal approximation screen using exact country-year residual pairs.
+Difference GMM (predetermined),AR(2) residual-correlation screen,-0.044579308739616366,6525,0.00031699085991411866,No AR(2) is the key differenced-error diagnostic.
+Difference GMM (predetermined),Instrument count,71.0,135,,Instrument count should remain below the number of countries.
+System GMM (predetermined),Hansen J overidentification test,10.353484492271903,12,0.5849798618704138,Two-step cluster-robust moment covariance; level moments require mean-stationarity assumptions.
+System GMM (predetermined),AR(1) residual-correlation screen,-0.47937317088490183,6660,0.0,Normal approximation screen using differenced-equation residuals.
+System GMM (predetermined),AR(2) residual-correlation screen,-0.045034462055253785,6525,0.0002750088348220118,No AR(2) is the key differenced-error diagnostic.
+System GMM (predetermined),Instrument count,76.0,135,,Instrument count should remain below the number of countries.
+Difference GMM (endogenous),Hansen J overidentification test,10.065402755556164,8,0.26046548453500445,Two-step cluster-robust moment covariance; interpret with instrument count.
+Difference GMM (endogenous),AR(1) residual-correlation screen,-0.4637088051573771,6660,2.2549017059e-313,Normal approximation screen using exact country-year residual pairs.
+Difference GMM (endogenous),AR(2) residual-correlation screen,-0.038581893585799186,6525,0.0018298199279211775,No AR(2) is the key differenced-error diagnostic.
+Difference GMM (endogenous),Instrument count,71.0,135,,Instrument count should remain below the number of countries.
+System GMM (endogenous),Hansen J overidentification test,15.543208503978759,12,0.21306468148986338,Two-step cluster-robust moment covariance; level moments require mean-stationarity assumptions.
+System GMM (endogenous),AR(1) residual-correlation screen,-0.4804178174784955,6660,0.0,Normal approximation screen using differenced-equation residuals.
+System GMM (endogenous),AR(2) residual-correlation screen,-0.0450238638134458,6525,0.00027592410774274684,No AR(2) is the key differenced-error diagnostic.
+System GMM (endogenous),Instrument count,76.0,135,,Instrument count should remain below the number of countries.
+
