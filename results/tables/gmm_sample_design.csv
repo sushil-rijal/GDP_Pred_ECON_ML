@@ -1,0 +1,4 @@
+human_capital_treatment,common_observed_panel_rows,difference_equations,level_equations,countries_in_difference,year_effects,difference_lag_window,collapsed_instruments
+predetermined,7065,6795,6795,135,59,2-4 for endogenous variables; 1-3 for predetermined human capital,True
+endogenous,7065,6795,6795,135,59,2-4 for endogenous variables; 1-3 for predetermined human capital,True
+
