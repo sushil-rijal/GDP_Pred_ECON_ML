@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+data/intermediate/*.csv
+data/processed/*.csv
+data/audit/*.csv
+results/figures/*
+results/tables/*
+!results/figures/.gitkeep
+!results/tables/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+archive/original_project/*
+!archive/original_project/README.md
