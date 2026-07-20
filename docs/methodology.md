@@ -20,3 +20,9 @@ Technology enters a separately reported extension using researchers per million 
 
 These specifications document conditional associations in the observed sample. They do not resolve simultaneity between income and capital; that question belongs to a later dynamic-panel design with an explicit instrument strategy.
 
+## Dynamic-panel diagnostic stage
+
+The dynamic-panel notebook estimates collapsed-instrument Difference GMM and System GMM designs in first differences. GDP per capita, private capital, and government capital are classified as endogenous. Human capital is estimated as predetermined and, separately, as endogenous. Instruments are restricted to a 2?4 lag window and collapsed; all specifications retain full year effects.
+
+The annual diagnostic versions use 6,795 difference equations from 135 countries, with 71 or 76 instruments. Although the Hansen J test is not rejected, the AR(2) residual-correlation screen is significant in every annual version. The results are therefore treated as diagnostic evidence, not final causal estimates. A subsequent design must address serial correlation before dynamic coefficients are interpreted.
+
