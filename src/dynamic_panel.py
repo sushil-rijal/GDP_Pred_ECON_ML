@@ -1,7 +1,7 @@
 """Collapsed-instrument Difference and System GMM diagnostics for the growth panel.
 
 This implementation is intentionally parsimonious: GDP, private capital, and
-public capital are endogenous; human capital is estimated once as predetermined
+public capital are endogenous; effective labor is estimated once as predetermined
 and once as endogenous.  Instruments are restricted to a 2--4 lag window.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ CORE_NAMES = (
     "lag_log_gdp_per_capita",
     "log_private_capital_per_capita",
     "log_government_capital_per_capita",
-    "log_human_capital_index",
+    "log_effective_labor_per_capita",
 )
 
 
@@ -45,22 +45,22 @@ def _is_available(*values: float | None) -> bool:
     return all(value is not None and np.isfinite(value) for value in values)
 
 
-def _dynamic_rows(sample: pd.DataFrame, human_treatment: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def _dynamic_rows(sample: pd.DataFrame, effective_labor_treatment: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """Create transformed equations and a collapsed, lag-limited instrument matrix."""
-    if human_treatment not in {"predetermined", "endogenous"}:
-        raise ValueError("human_treatment must be 'predetermined' or 'endogenous'.")
+    if effective_labor_treatment not in {"predetermined", "endogenous"}:
+        raise ValueError("effective_labor_treatment must be 'predetermined' or 'endogenous'.")
     variables = {
         "y": "log_gdp_per_capita_ppp",
         "private": "log_private_capital_per_capita",
         "government": "log_government_capital_per_capita",
-        "human": "log_human_capital_index",
+        "effective_labor": "log_effective_labor_per_capita",
     }
     lookup_table = {
         (str(row.country_code), int(row.year)): {
             "y": float(row.log_gdp_per_capita_ppp),
             "private": float(row.log_private_capital_per_capita),
             "government": float(row.log_government_capital_per_capita),
-            "human": float(row.log_human_capital_index),
+            "effective_labor": float(row.log_effective_labor_per_capita),
         }
         for row in sample.itertuples(index=False)
     }
@@ -71,9 +71,9 @@ def _dynamic_rows(sample: pd.DataFrame, human_treatment: str) -> tuple[dict[str,
     base_year = years[0]
     year_columns = [year for year in years if year != base_year]
     endog_lags = [2, 3, 4]
-    human_lags = [1, 2, 3] if human_treatment == "predetermined" else [2, 3, 4]
-    diff_instrument_names = [f"D_{name}_lag{lag}" for name, lags in (("y", endog_lags), ("private", endog_lags), ("government", endog_lags), ("human", human_lags)) for lag in lags]
-    level_instrument_names = [f"L_delta_{name}_lag1" for name in ("y", "private", "government", "human")]
+    effective_labor_lags = [1, 2, 3] if effective_labor_treatment == "predetermined" else [2, 3, 4]
+    diff_instrument_names = [f"D_{name}_lag{lag}" for name, lags in (("y", endog_lags), ("private", endog_lags), ("government", endog_lags), ("effective_labor", effective_labor_lags)) for lag in lags]
+    level_instrument_names = [f"L_delta_{name}_lag1" for name in ("y", "private", "government", "effective_labor")]
     diff_rows: list[dict[str, Any]] = []
     level_rows: list[dict[str, Any]] = []
     for country, country_frame in sample.groupby("country_code", sort=False):
@@ -81,27 +81,27 @@ def _dynamic_rows(sample: pd.DataFrame, human_treatment: str) -> tuple[dict[str,
         for year in available_years:
             # Difference equation at t requires t, t-1, and t-2.
             values = {name: {lag: value(country, year - lag, name) for lag in range(5)} for name in variables}
-            if _is_available(values["y"][0], values["y"][1], values["y"][2], values["private"][0], values["private"][1], values["government"][0], values["government"][1], values["human"][0], values["human"][1]):
-                required_lags = {"y": 2, "private": 2, "government": 2, "human": human_lags[0]}
+            if _is_available(values["y"][0], values["y"][1], values["y"][2], values["private"][0], values["private"][1], values["government"][0], values["government"][1], values["effective_labor"][0], values["effective_labor"][1]):
+                required_lags = {"y": 2, "private": 2, "government": 2, "effective_labor": effective_labor_lags[0]}
                 if all(values[name][lag] is not None for name, lag in required_lags.items()):
                     d_year = _year_vector(year, base_year, year_columns) - _year_vector(year - 1, base_year, year_columns)
                     d_instruments = []
-                    for name, lags in (("y", endog_lags), ("private", endog_lags), ("government", endog_lags), ("human", human_lags)):
+                    for name, lags in (("y", endog_lags), ("private", endog_lags), ("government", endog_lags), ("effective_labor", effective_labor_lags)):
                         d_instruments.extend([values[name][lag] if values[name][lag] is not None else 0.0 for lag in lags])
                     diff_rows.append({
                         "country": country, "year": year,
                         "y": values["y"][0] - values["y"][1],
-                        "x": [values["y"][1] - values["y"][2], values["private"][0] - values["private"][1], values["government"][0] - values["government"][1], values["human"][0] - values["human"][1], *d_year, 0.0],
+                        "x": [values["y"][1] - values["y"][2], values["private"][0] - values["private"][1], values["government"][0] - values["government"][1], values["effective_labor"][0] - values["effective_labor"][1], *d_year, 0.0],
                         "z_difference": d_instruments,
                     })
             # Levels equation uses lagged first differences as instruments.
-            if _is_available(values["y"][0], values["y"][1], values["y"][2], values["private"][0], values["private"][1], values["private"][2], values["government"][0], values["government"][1], values["government"][2], values["human"][0], values["human"][1], values["human"][2]):
+            if _is_available(values["y"][0], values["y"][1], values["y"][2], values["private"][0], values["private"][1], values["private"][2], values["government"][0], values["government"][1], values["government"][2], values["effective_labor"][0], values["effective_labor"][1], values["effective_labor"][2]):
                 l_year = _year_vector(year, base_year, year_columns)
                 level_rows.append({
                     "country": country, "year": year,
                     "y": values["y"][0],
-                    "x": [values["y"][1], values["private"][0], values["government"][0], values["human"][0], *l_year, 1.0],
-                    "z_level": [values["y"][1] - values["y"][2], values["private"][1] - values["private"][2], values["government"][1] - values["government"][2], values["human"][1] - values["human"][2]],
+                    "x": [values["y"][1], values["private"][0], values["government"][0], values["effective_labor"][0], *l_year, 1.0],
+                    "z_level": [values["y"][1] - values["y"][2], values["private"][1] - values["private"][2], values["government"][1] - values["government"][2], values["effective_labor"][1] - values["effective_labor"][2]],
                 })
     metadata = {"year_columns": year_columns, "diff_instrument_names": diff_instrument_names, "level_instrument_names": level_instrument_names}
     return {"difference": diff_rows, "levels": level_rows}, metadata
@@ -151,7 +151,7 @@ def _ar_screen(rows: list[dict[str, Any]], residual: np.ndarray, lag: int) -> tu
     return correlation, _normal_p(z_value), len(products)
 
 
-def _estimate_difference(rows: dict[str, Any], metadata: dict[str, Any], human_treatment: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _estimate_difference(rows: dict[str, Any], metadata: dict[str, Any], effective_labor_treatment: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     difference = rows["difference"]
     y = np.array([row["y"] for row in difference], dtype=float)
     x = np.array([row["x"] for row in difference], dtype=float)[:, :-1]
@@ -160,21 +160,21 @@ def _estimate_difference(rows: dict[str, Any], metadata: dict[str, Any], human_t
     fit = _two_step_gmm(y, x, z, cluster)
     names = [*CORE_NAMES, *[f"year_{year}" for year in metadata["year_columns"]]]
     standard_error = np.sqrt(np.clip(np.diag(fit["covariance"]), 0, None))
-    table = pd.DataFrame({"model": f"Difference GMM ({human_treatment})", "variable": names, "coefficient": fit["beta"], "clustered_std_error": standard_error})
+    table = pd.DataFrame({"model": f"Difference GMM ({effective_labor_treatment})", "variable": names, "coefficient": fit["beta"], "clustered_std_error": standard_error})
     table["z_statistic"] = table["coefficient"] / table["clustered_std_error"]
     table["p_value_normal"] = table["z_statistic"].map(_normal_p)
     ar1, ar1_p, ar1_n = _ar_screen(difference, fit["residual"], 1)
     ar2, ar2_p, ar2_n = _ar_screen(difference, fit["residual"], 2)
     diagnostics = pd.DataFrame([
-        {"model": f"Difference GMM ({human_treatment})", "test": "Hansen J overidentification test", "statistic": fit["j_statistic"], "df": fit["instrument_count"] - len(names), "p_value": _chi_square_p(fit["j_statistic"], fit["instrument_count"] - len(names)), "notes": "Two-step cluster-robust moment covariance; interpret with instrument count."},
-        {"model": f"Difference GMM ({human_treatment})", "test": "AR(1) residual-correlation screen", "statistic": ar1, "df": ar1_n, "p_value": ar1_p, "notes": "Normal approximation screen using exact country-year residual pairs."},
-        {"model": f"Difference GMM ({human_treatment})", "test": "AR(2) residual-correlation screen", "statistic": ar2, "df": ar2_n, "p_value": ar2_p, "notes": "No AR(2) is the key differenced-error diagnostic."},
-        {"model": f"Difference GMM ({human_treatment})", "test": "Instrument count", "statistic": fit["instrument_count"], "df": fit["countries"], "p_value": np.nan, "notes": "Instrument count should remain below the number of countries."},
+        {"model": f"Difference GMM ({effective_labor_treatment})", "test": "Hansen J overidentification test", "statistic": fit["j_statistic"], "df": fit["instrument_count"] - len(names), "p_value": _chi_square_p(fit["j_statistic"], fit["instrument_count"] - len(names)), "notes": "Two-step cluster-robust moment covariance; interpret with instrument count."},
+        {"model": f"Difference GMM ({effective_labor_treatment})", "test": "AR(1) residual-correlation screen", "statistic": ar1, "df": ar1_n, "p_value": ar1_p, "notes": "Normal approximation screen using exact country-year residual pairs."},
+        {"model": f"Difference GMM ({effective_labor_treatment})", "test": "AR(2) residual-correlation screen", "statistic": ar2, "df": ar2_n, "p_value": ar2_p, "notes": "No AR(2) is the key differenced-error diagnostic."},
+        {"model": f"Difference GMM ({effective_labor_treatment})", "test": "Instrument count", "statistic": fit["instrument_count"], "df": fit["countries"], "p_value": np.nan, "notes": "Instrument count should remain below the number of countries."},
     ])
     return table[table["variable"].isin(CORE_NAMES)].reset_index(drop=True), diagnostics
 
 
-def _estimate_system(rows: dict[str, Any], metadata: dict[str, Any], human_treatment: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _estimate_system(rows: dict[str, Any], metadata: dict[str, Any], effective_labor_treatment: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     difference, levels = rows["difference"], rows["levels"]
     n_d, n_l = len(difference), len(levels)
     year_count = len(metadata["year_columns"])
@@ -198,7 +198,7 @@ def _estimate_system(rows: dict[str, Any], metadata: dict[str, Any], human_treat
     fit = _two_step_gmm(y, x, z, cluster)
     names = [*CORE_NAMES, *[f"year_{year}" for year in metadata["year_columns"]], "constant"]
     standard_error = np.sqrt(np.clip(np.diag(fit["covariance"]), 0, None))
-    table = pd.DataFrame({"model": f"System GMM ({human_treatment})", "variable": names, "coefficient": fit["beta"], "clustered_std_error": standard_error})
+    table = pd.DataFrame({"model": f"System GMM ({effective_labor_treatment})", "variable": names, "coefficient": fit["beta"], "clustered_std_error": standard_error})
     table["z_statistic"] = table["coefficient"] / table["clustered_std_error"]
     table["p_value_normal"] = table["z_statistic"].map(_normal_p)
     # Serial correlation is assessed on the differenced-equation subset.
@@ -206,16 +206,16 @@ def _estimate_system(rows: dict[str, Any], metadata: dict[str, Any], human_treat
     ar1, ar1_p, ar1_n = _ar_screen(difference, diff_residual, 1)
     ar2, ar2_p, ar2_n = _ar_screen(difference, diff_residual, 2)
     diagnostics = pd.DataFrame([
-        {"model": f"System GMM ({human_treatment})", "test": "Hansen J overidentification test", "statistic": fit["j_statistic"], "df": fit["instrument_count"] - len(names), "p_value": _chi_square_p(fit["j_statistic"], fit["instrument_count"] - len(names)), "notes": "Two-step cluster-robust moment covariance; level moments require mean-stationarity assumptions."},
-        {"model": f"System GMM ({human_treatment})", "test": "AR(1) residual-correlation screen", "statistic": ar1, "df": ar1_n, "p_value": ar1_p, "notes": "Normal approximation screen using differenced-equation residuals."},
-        {"model": f"System GMM ({human_treatment})", "test": "AR(2) residual-correlation screen", "statistic": ar2, "df": ar2_n, "p_value": ar2_p, "notes": "No AR(2) is the key differenced-error diagnostic."},
-        {"model": f"System GMM ({human_treatment})", "test": "Instrument count", "statistic": fit["instrument_count"], "df": fit["countries"], "p_value": np.nan, "notes": "Instrument count should remain below the number of countries."},
+        {"model": f"System GMM ({effective_labor_treatment})", "test": "Hansen J overidentification test", "statistic": fit["j_statistic"], "df": fit["instrument_count"] - len(names), "p_value": _chi_square_p(fit["j_statistic"], fit["instrument_count"] - len(names)), "notes": "Two-step cluster-robust moment covariance; level moments require mean-stationarity assumptions."},
+        {"model": f"System GMM ({effective_labor_treatment})", "test": "AR(1) residual-correlation screen", "statistic": ar1, "df": ar1_n, "p_value": ar1_p, "notes": "Normal approximation screen using differenced-equation residuals."},
+        {"model": f"System GMM ({effective_labor_treatment})", "test": "AR(2) residual-correlation screen", "statistic": ar2, "df": ar2_n, "p_value": ar2_p, "notes": "No AR(2) is the key differenced-error diagnostic."},
+        {"model": f"System GMM ({effective_labor_treatment})", "test": "Instrument count", "statistic": fit["instrument_count"], "df": fit["countries"], "p_value": np.nan, "notes": "Instrument count should remain below the number of countries."},
     ])
     return table[table["variable"].isin(CORE_NAMES)].reset_index(drop=True), diagnostics
 
 
 def run_gmm_versions(panel: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Run Difference and System GMM with two human-capital classifications."""
+    """Run Difference and System GMM with two effective-labor classifications."""
     sample = build_baseline_log_sample(panel)
     result_tables, diagnostic_tables, samples = [], [], []
     for treatment in ("predetermined", "endogenous"):
@@ -224,5 +224,5 @@ def run_gmm_versions(panel: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, p
         system_table, system_diagnostics = _estimate_system(rows, metadata, treatment)
         result_tables.extend([difference_table, system_table])
         diagnostic_tables.extend([difference_diagnostics, system_diagnostics])
-        samples.append({"human_capital_treatment": treatment, "common_observed_panel_rows": len(sample), "difference_equations": len(rows["difference"]), "level_equations": len(rows["levels"]), "countries_in_difference": len({row["country"] for row in rows["difference"]}), "year_effects": len(metadata["year_columns"]), "difference_lag_window": "2-4 for endogenous variables; 1-3 for predetermined human capital", "collapsed_instruments": True})
+        samples.append({"effective_labor_treatment": treatment, "common_observed_panel_rows": len(sample), "difference_equations": len(rows["difference"]), "level_equations": len(rows["levels"]), "countries_in_difference": len({row["country"] for row in rows["difference"]}), "year_effects": len(metadata["year_columns"]), "difference_lag_window": "2-4 for endogenous variables; 1-3 for predetermined effective labor", "collapsed_instruments": True})
     return pd.concat(result_tables, ignore_index=True), pd.concat(diagnostic_tables, ignore_index=True), pd.DataFrame(samples)
