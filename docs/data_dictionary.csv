@@ -8,3 +8,9 @@ capital_stock,Real physical capital stock,To be confirmed,Growth driver,stock,On
 human_capital,Human capital index,To be confirmed,Growth driver,index,Only documented internal interpolation
 inflation,Annual inflation rate,To be confirmed,Macro control,flow/rate,No interpolation
 technology_index,PCA-derived technology measure,Constructed,Technology block,index,Document PCA inputs and coverage
+effective_labor,Labor force multiplied by normalized HCI,Constructed from original labor block,Quantity-quality labor input,derived level,Only when labor force and HCI are observed and positive
+labor_force_population_ratio,Labor force divided by total population,Constructed,Labor quantity per person / participation proxy,ratio,Only when labor force and population are observed and positive
+employment_adjusted_effective_labor,Effective labor multiplied by one minus unemployment rate,Constructed,Labor-utilization sensitivity measure,derived level,Only when source inputs are observed and unemployment is within 0 to 100
+total_patents,Resident plus nonresident patent applications,World Bank / original technology block,Technology output measure,flow,No interpolation or imputation
+energy_per_labor,Energy use per person multiplied by population divided by labor force,Constructed from original technology block,Technology and production-intensity measure,ratio,Only when source inputs are observed and positive
+
