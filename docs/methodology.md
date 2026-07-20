@@ -2,12 +2,21 @@
 
 The project separates construction from inference. Notebook 01 produces an auditable country-year panel without automated imputation. Notebook 02 describes coverage, moments (including skewness and excess kurtosis), distributions, and Pearson/Spearman correlations. PCA may summarize pre-specified economically coherent blocks such as technology; it does not replace a theory-led specification.
 
-The core analysis compares pooled OLS, country/time fixed effects, and random effects where appropriate. VIF and correlations diagnose collinearity but do not identify causal effects. Dynamic panel GMM is deferred until the endogenous regressors, lag structure, instrument count, and diagnostics are explicitly documented.
+The core analysis compares pooled OLS, random effects, and country/year fixed effects using a common observed-data sample. The specification uses full year indicators rather than a linear time trend. VIF and correlations diagnose collinearity but do not identify causal effects. Dynamic panel GMM is deferred until the endogenous regressors, lag structure, instrument count, and diagnostics are explicitly documented.
 
 Machine learning is an out-of-sample prediction extension; feature importance and SHAP values are not causal estimates.
 
-## Baseline log-linear panel model
+## Primary log-linear panel specification
 
-The baseline outcome is the natural logarithm of observed PPP GDP per capita. Private and government capital are converted to PPP dollars per person before logging; human-capital and TFP indices are also entered in natural logs. The baseline model has no global intercept. Country effects absorb country-specific baselines and year effects absorb common time shocks. Standard errors are clustered by country.
+The primary outcome is the natural logarithm of observed PPP GDP per capita. Private and government capital are converted to PPP dollars per person before logging; the human-capital index is also entered in natural logs. The primary specification is:
 
-This specification is an association model. It documents the empirical relationships in the observed sample and provides a benchmark for later dynamic-panel analysis of simultaneity and persistence.
+`ln GDP per capita_it = alpha + beta_1 ln private capital per capita_it + beta_2 ln government capital per capita_it + beta_3 ln human capital_it + year effects_t + error_it`.
+
+The pooled and random-effects estimators include an intercept and full year effects. The fixed-effects estimator adds country effects, allowing each country to have its own time-invariant baseline. The intercept is a baseline term; it is not total factor productivity. PWT's constructed TFP series is retained for a separate growth-accounting extension rather than treated as a primary causal-style regressor.
+
+The model sequence is: pooled OLS with year effects; an F test for country effects; random effects with year effects; an unbalanced-panel variance-component LM test; a conventional Hausman diagnostic; and the fixed-effects benchmark. Standard errors in the reported coefficient tables are clustered by country.
+
+Technology enters a separately reported extension using researchers per million people. It therefore has its own observed-data sample and does not silently constrain the primary specification.
+
+These specifications document conditional associations in the observed sample. They do not resolve simultaneity between income and capital; that question belongs to a later dynamic-panel design with an explicit instrument strategy.
+
