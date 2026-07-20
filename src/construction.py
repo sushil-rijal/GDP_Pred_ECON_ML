@@ -1,6 +1,7 @@
 """Construct the analysis panel from the original merged data without imputation."""
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 RAW_TO_ANALYSIS = {
@@ -27,7 +28,8 @@ RAW_TO_ANALYSIS = {
     "Urban population (% of total population)": "urban_population_pct",
 }
 
-DEPENDENT_VARIABLES = ("gdp_rppp", "gdp_n", "real_gdp_ppp_output")
+DEPENDENT_VARIABLES = ("gdp_per_capita_ppp", "log_gdp_per_capita_ppp")
+GDP_RPPP_TO_DOLLARS = 1_000_000_000  # GDP_rppp is recorded in billions of PPP dollars.
 FLOW_OR_RATE_VARIABLES = ("unemployment_pct", "researchers_per_million", "patents_residents", "patents_nonresidents", "energy_use_per_capita")
 STOCK_OR_INDEX_VARIABLES = ("ppp_capital", "priv_capital", "gov_capital", "labor_force", "human_capital_index", "tfp_index", "population_total")
 
@@ -49,6 +51,22 @@ def construct_analysis_panel(raw: pd.DataFrame) -> pd.DataFrame:
     panel["year"] = pd.to_numeric(panel["year"], errors="coerce").astype("Int64")
     for variable in panel.select_dtypes(include="number"):
         panel[f"{variable}_observed_flag"] = panel[variable].notna().astype("int8")
+
+    # The main outcome uses observed PPP GDP and observed population only. No
+    # interpolation, target reconstruction, or zero substitution is performed.
+    valid_per_capita = (
+        panel["gdp_rppp"].notna()
+        & panel["population_total"].notna()
+        & panel["gdp_rppp"].gt(0)
+        & panel["population_total"].gt(0)
+    )
+    panel["gdp_per_capita_ppp"] = np.where(
+        valid_per_capita,
+        panel["gdp_rppp"] * GDP_RPPP_TO_DOLLARS / panel["population_total"],
+        np.nan,
+    )
+    panel["log_gdp_per_capita_ppp"] = np.log(panel["gdp_per_capita_ppp"])
+    panel["gdp_per_capita_observed_flag"] = valid_per_capita.astype("int8")
     return panel.sort_values(["country_code", "year"]).reset_index(drop=True)
 
 
