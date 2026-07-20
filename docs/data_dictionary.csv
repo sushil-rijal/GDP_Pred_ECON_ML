@@ -1,7 +1,8 @@
 variable,definition,source,economic_role,variable_type,default_missingness_treatment
 country_code,ISO-like country identifier,All sources,Panel key,identifier,Must be present
 year,Calendar year,All sources,Panel key,time,Must be present
-gdp_growth,Annual real GDP growth rate,To be confirmed,Dependent variable,flow,No interpolation or imputation
+gdp_per_capita_ppp,Observed PPP GDP per person (GDP_rppp in billions divided by population),Capital-stock dataset and World Bank population,Main dependent variable,level,Derived only when both source values are observed and positive
+log_gdp_per_capita_ppp,Natural logarithm of observed PPP GDP per person,Constructed,Main dependent variable,transformation,No interpolation or imputation
 rgdpna,Real GDP at constant national prices,Penn World Table,Outcome or scale control,level,No interpolation or imputation
 capital_stock,Real physical capital stock,To be confirmed,Growth driver,stock,Only documented internal interpolation
 human_capital,Human capital index,To be confirmed,Growth driver,index,Only documented internal interpolation
