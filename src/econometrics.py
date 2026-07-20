@@ -16,7 +16,7 @@ CAPITAL_TO_DOLLARS = 1_000_000_000
 PRIMARY_LOG_VARIABLES = (
     "log_private_capital_per_capita",
     "log_government_capital_per_capita",
-    "log_human_capital_index",
+    "log_effective_labor_per_capita",
 )
 TECHNOLOGY_LOG_VARIABLE = "log_researchers_per_million"
 
@@ -38,7 +38,10 @@ def build_baseline_log_sample(panel: pd.DataFrame, *, include_technology: bool =
     result["government_capital_per_capita"] = result["gov_capital"] * CAPITAL_TO_DOLLARS / result["population_total"]
     _positive_log(result, "private_capital_per_capita", "log_private_capital_per_capita")
     _positive_log(result, "government_capital_per_capita", "log_government_capital_per_capita")
-    _positive_log(result, "human_capital_index", "log_human_capital_index")
+    # HCI is labor quality. Following the original notebook, its primary use is
+    # to scale labor quantity: effective_labor = labor_force * HCI.
+    result["effective_labor_per_capita"] = result["effective_labor"] / result["population_total"]
+    _positive_log(result, "effective_labor_per_capita", "log_effective_labor_per_capita")
     _positive_log(result, "researchers_per_million", TECHNOLOGY_LOG_VARIABLE)
     variables = list(PRIMARY_LOG_VARIABLES)
     if include_technology:
