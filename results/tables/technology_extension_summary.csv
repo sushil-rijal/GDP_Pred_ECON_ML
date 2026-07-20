@@ -1,0 +1,5 @@
+model,observations,countries,years,parameters,overall_r_squared,overall_residual_rmse,sigma_entity_squared,sigma_idiosyncratic_squared
+Pooled OLS + year effects,5803,108,60,64,0.9390742416704909,0.31966174264596836,,
+Random effects + year effects,5803,108,60,64,0.9382216224070734,0.32189070818483245,0.06315749701627396,0.038926082358388854
+Fixed effects + year effects,5803,108,60,171,0.9772235131870031,0.19729693955657004,,
+
