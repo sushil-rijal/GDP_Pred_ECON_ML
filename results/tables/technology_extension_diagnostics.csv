@@ -1,0 +1,5 @@
+test,statistic,df,p_value,decision_rule
+F test: pooled OLS vs fixed effects,88.16138029524478,"107, 5632",0.0,tests whether country fixed effects are jointly zero
+LM test: pooled OLS vs random effects,58819.772326025544,1,0.0,one-sided variance-component score test
+Hausman test: random effects vs fixed effects,2.804337014366308,4,0.5910842994289083,conventional covariance; clustered standard errors are reported separately
+
