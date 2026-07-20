@@ -67,6 +67,65 @@ def construct_analysis_panel(raw: pd.DataFrame) -> pd.DataFrame:
     )
     panel["log_gdp_per_capita_ppp"] = np.log(panel["gdp_per_capita_ppp"])
     panel["gdp_per_capita_observed_flag"] = valid_per_capita.astype("int8")
+
+    # Preserve the original notebook's labor-block logic. HCI is a normalized
+    # quality index, so its primary role is to scale labor quantity rather than
+    # enter alongside the mechanically related effective-labor measure.
+    valid_effective_labor = (
+        panel["labor_force"].notna()
+        & panel["human_capital_index"].notna()
+        & panel["labor_force"].gt(0)
+        & panel["human_capital_index"].gt(0)
+    )
+    panel["effective_labor"] = np.nan
+    panel.loc[valid_effective_labor, "effective_labor"] = (
+        panel.loc[valid_effective_labor, "labor_force"]
+        * panel.loc[valid_effective_labor, "human_capital_index"]
+    )
+    panel["effective_labor_observed_flag"] = valid_effective_labor.astype("int8")
+
+    valid_labor_share = panel["labor_force"].gt(0) & panel["population_total"].gt(0)
+    panel["labor_force_population_ratio"] = np.nan
+    panel.loc[valid_labor_share, "labor_force_population_ratio"] = (
+        panel.loc[valid_labor_share, "labor_force"]
+        / panel.loc[valid_labor_share, "population_total"]
+    )
+    panel["labor_force_population_ratio_observed_flag"] = valid_labor_share.astype("int8")
+
+    valid_employment_adjustment = (
+        valid_effective_labor
+        & panel["unemployment_pct"].notna()
+        & panel["unemployment_pct"].between(0, 100)
+    )
+    panel["employment_adjusted_effective_labor"] = np.nan
+    panel.loc[valid_employment_adjustment, "employment_adjusted_effective_labor"] = (
+        panel.loc[valid_employment_adjustment, "effective_labor"]
+        * (1 - panel.loc[valid_employment_adjustment, "unemployment_pct"] / 100)
+    )
+    panel["employment_adjusted_effective_labor_observed_flag"] = valid_employment_adjustment.astype("int8")
+
+    # Preserve the original technology-block constructions without filling any
+    # missing source values.
+    valid_patents = panel["patents_residents"].notna() & panel["patents_nonresidents"].notna()
+    panel["total_patents"] = np.nan
+    panel.loc[valid_patents, "total_patents"] = (
+        panel.loc[valid_patents, "patents_residents"]
+        + panel.loc[valid_patents, "patents_nonresidents"]
+    )
+    panel["total_patents_observed_flag"] = valid_patents.astype("int8")
+
+    valid_energy_per_labor = (
+        panel["energy_use_per_capita"].gt(0)
+        & panel["population_total"].gt(0)
+        & panel["labor_force"].gt(0)
+    )
+    panel["energy_per_labor"] = np.nan
+    panel.loc[valid_energy_per_labor, "energy_per_labor"] = (
+        panel.loc[valid_energy_per_labor, "energy_use_per_capita"]
+        * panel.loc[valid_energy_per_labor, "population_total"]
+        / panel.loc[valid_energy_per_labor, "labor_force"]
+    )
+    panel["energy_per_labor_observed_flag"] = valid_energy_per_labor.astype("int8")
     return panel.sort_values(["country_code", "year"]).reset_index(drop=True)
 
 
